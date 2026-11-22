@@ -1,0 +1,154 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Safety Net: Default deny all unmatched paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Hardened Primitives ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (
+          'email' in request.auth.token &&
+          request.auth.token.email == 'kumaramitbth4@gmail.com' &&
+          'email_verified' in request.auth.token &&
+          request.auth.token.email_verified == true
+        ) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+               'userId', 'orderId', 'productId', 'productName',
+               'status', 'customerName', 'quantity', 'totalAmount',
+               'createdAt', 'updatedAt'
+             ]) &&
+             data.keys().hasOnly([
+               'userId', 'orderId', 'productId', 'productName', 'productCategory',
+               'productPrice', 'productImageRes', 'orderDate', 'status', 'statusText',
+               'deliveryDateRange', 'selectedSize', 'quantity', 'totalAmount',
+               'trackingStages', 'userRating', 'userReviewText', 'feedbackCompleted',
+               'paymentMethod', 'awbNumber', 'customerName', 'deliveryAddress',
+               'labelDownloaded', 'sellerStage', 'customerPhone', 'customerAgeYears',
+               'selectedColor', 'paymentStatus', 'orderConfirmed', 'qualityVerified',
+               'packed', 'invoiceGenerated', 'barcodeScanned', 'courierPartner',
+               'pickupStatus', 'shippingCharges', 'expectedDeliveryDate',
+               'currentTrackingLocation', 'deliveryDelayed', 'rtoFlagged', 'rtoReason',
+               'cancelReason', 'cancelledBy', 'cancellationDate', 'refundStatus',
+               'refundAmount', 'stockRestored', 'holdReason', 'holdDate', 'holdNotes',
+               'holdExpiryAlert', 'adminApprovedHold', 'sellerHoldPermission',
+               'orderHistoryLog', 'city', 'state', 'pinCode',
+               'customProductImageUri', 'createdAt', 'updatedAt'
+             ]) &&
+             isValidId(data.userId) &&
+             isValidId(data.orderId) &&
+             data.productId is string && data.productId.size() <= 128 &&
+             data.productName is string && data.productName.size() >= 1 && data.productName.size() <= 250 &&
+             data.status in ['ALL', 'ORDERED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'EXCHANGE', 'RETURN'] &&
+             data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 160 &&
+             data.quantity is int && data.quantity >= 1 && data.quantity <= 10000 &&
+             data.totalAmount is int && data.totalAmount >= 0 && data.totalAmount <= 100000000 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time &&
+             data.get('customerAgeYears', '') is string && data.get('customerAgeYears', '').size() <= 40 &&
+             data.get('awbNumber', '') is string && data.get('awbNumber', '').size() <= 100 &&
+             data.get('city', '') is string && data.get('city', '').size() <= 120 &&
+             data.get('state', '') is string && data.get('state', '').size() <= 120 &&
+             data.get('pinCode', '') is string && data.get('pinCode', '').size() <= 20 &&
+             data.get('customProductImageUri', '') is string && data.get('customProductImageUri', '').size() <= 1000 &&
+             data.get('cancelReason', '') is string && data.get('cancelReason', '').size() <= 500 &&
+             data.get('cancelledBy', '') is string && data.get('cancelledBy', '').size() <= 60 &&
+             data.get('refundAmount', 0) is int && data.get('refundAmount', 0) >= 0 &&
+             data.get('userRating', 0) is int && data.get('userRating', 0) >= 0 && data.get('userRating', 0) <= 5 &&
+             data.get('trackingStages', []) is list && data.get('trackingStages', []).size() <= 20 &&
+             data.get('orderHistoryLog', []) is list && data.get('orderHistoryLog', []).size() <= 100;
+    }
+
+    // Cancellation policy guard: Shipped / Delivered orders must go via RTO flow unless Admin overrides
+    function isDirectShippedCancelViolation(prev, next) {
+      return (prev.status in ['SHIPPED', 'DELIVERED']) &&
+             next.status == 'CANCELLED' &&
+             next.get('rtoFlagged', false) != true;
+    }
+
+    function isFeedbackUpdateAction() {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+        'userRating', 'userReviewText', 'feedbackCompleted', 'updatedAt'
+      ]);
+    }
+
+    function isOrderWorkflowAction() {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+        'productId', 'productName', 'productCategory', 'productPrice', 'productImageRes',
+        'orderDate', 'status', 'statusText', 'deliveryDateRange', 'selectedSize',
+        'quantity', 'totalAmount', 'trackingStages', 'userRating', 'userReviewText',
+        'feedbackCompleted', 'paymentMethod', 'awbNumber', 'customerName', 'deliveryAddress',
+        'labelDownloaded', 'sellerStage', 'customerPhone', 'customerAgeYears', 'selectedColor',
+        'paymentStatus', 'orderConfirmed', 'qualityVerified', 'packed', 'invoiceGenerated',
+        'barcodeScanned', 'courierPartner', 'pickupStatus', 'shippingCharges',
+        'expectedDeliveryDate', 'currentTrackingLocation', 'deliveryDelayed', 'rtoFlagged',
+        'rtoReason', 'cancelReason', 'cancelledBy', 'cancellationDate', 'refundStatus',
+        'refundAmount', 'stockRestored', 'holdReason', 'holdDate', 'holdNotes',
+        'holdExpiryAlert', 'adminApprovedHold', 'sellerHoldPermission', 'orderHistoryLog',
+        'city', 'state', 'pinCode', 'customProductImageUri', 'updatedAt'
+      ]);
+    }
+
+    // User-scoped orders collection: /users/{userId}/orders/{orderId}
+    match /users/{userId}/orders/{orderId} {
+      // Single doc read restricted strictly to owner or verified admin
+      allow get: if (isOwner(userId) || isAdmin()) && isValidId(orderId);
+
+      // Subcollection wildcard list isolated to authenticated owner (no existing() call on list)
+      allow list: if isOwner(userId) || isAdmin();
+
+      // Create: Authenticated owner/admin, path matches payload userId/orderId, schema & server timestamp validated
+      allow create: if (isOwner(userId) || isAdmin()) &&
+                       isValidId(orderId) &&
+                       incoming().userId == userId &&
+                       incoming().orderId == orderId &&
+                       isValidOrder(incoming());
+
+      // Update: Validation helper wraps entire update; immutable fields locked; action allowlists enforced
+      allow update: if isSignedIn() &&
+                       isValidId(orderId) &&
+                       (isOwner(userId) || isAdmin()) &&
+                       isValidOrder(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().orderId == existing().orderId &&
+                       incoming().createdAt == existing().createdAt &&
+                       !isDirectShippedCancelViolation(existing(), incoming()) &&
+                       (
+                         isAdmin() ||
+                         isFeedbackUpdateAction() ||
+                         isOrderWorkflowAction()
+                       );
+
+      // Delete: Authenticated owner or admin
+      allow delete: if (isOwner(userId) || isAdmin()) && isValidId(orderId);
+    }
+  }
+}

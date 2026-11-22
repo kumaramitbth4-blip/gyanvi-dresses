@@ -1,0 +1,6 @@
+{
+  "name": "Gyanvi Dresses",
+  "description": "Gyanvi Dresses - Trendy ethnic wear, sarees, kurtis, western dresses and fashion e-commerce with Meesho-style shopping experience, fast filters, search and orders.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

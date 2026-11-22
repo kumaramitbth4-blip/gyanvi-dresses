@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "TrackingStageRecord": {
+      "title": "TrackingStageRecord",
+      "description": "Milestone entry for order fulfillment and courier shipment tracking.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Milestone title." },
+        "subtitle": { "type": "string", "description": "Milestone subtitle or courier message." },
+        "completed": { "type": "boolean", "description": "Whether this tracking stage is complete." },
+        "dateStr": { "type": "string", "description": "Display date string." }
+      },
+      "required": ["title", "subtitle", "completed", "dateStr"]
+    },
+    "OrderRecord": {
+      "title": "OrderRecord",
+      "description": "Gyanvi Dresses seller & customer order lifecycle record supporting On Hold, Pending, Ready to Ship, Shipped, Delivered, Cancelled, Exchange, and Return workflows.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Authenticated Firebase UID of the record owner." },
+        "orderId": { "type": "string", "description": "Unique order identifier matching the Firestore document ID." },
+        "productId": { "type": "string", "description": "Catalog or custom product ID." },
+        "productName": { "type": "string", "description": "Product display name." },
+        "productCategory": { "type": "string", "description": "Product category label." },
+        "productPrice": { "type": "integer", "description": "Unit product price in INR." },
+        "productImageRes": { "type": "integer", "description": "Bundled drawable resource identifier." },
+        "orderDate": { "type": "string", "description": "Display order date string." },
+        "status": {
+          "type": "string",
+          "enum": ["ALL", "ORDERED", "SHIPPED", "DELIVERED", "CANCELLED", "EXCHANGE", "RETURN"],
+          "description": "Primary OrderStatus enum value."
+        },
+        "statusText": { "type": "string", "description": "Human-readable status description." },
+        "deliveryDateRange": { "type": "string", "description": "Estimated or final delivery/cancellation window." },
+        "selectedSize": { "type": "string", "description": "Ordered size name or number." },
+        "quantity": { "type": "integer", "description": "Ordered unit quantity." },
+        "totalAmount": { "type": "integer", "description": "Total order amount in INR." },
+        "trackingStages": {
+          "type": "array",
+          "description": "Bounded list (max 20) of TrackingStageRecord maps."
+        },
+        "userRating": { "type": "integer", "description": "Customer rating from 0 to 5." },
+        "userReviewText": { "type": "string", "description": "Customer feedback text." },
+        "feedbackCompleted": { "type": "boolean", "description": "Whether buyer feedback has been submitted." },
+        "paymentMethod": { "type": "string", "description": "Payment mode such as UPI or COD." },
+        "awbNumber": { "type": "string", "description": "Courier Air Waybill tracking number." },
+        "customerName": { "type": "string", "description": "Recipient full name." },
+        "deliveryAddress": { "type": "string", "description": "Street / house delivery address." },
+        "labelDownloaded": { "type": "boolean", "description": "Whether shipping label / PDF was downloaded." },
+        "sellerStage": { "type": "string", "description": "Seller workflow stage (Pending, On Hold, Ready to Ship, Shipped, Out for Delivery, Delivered, Cancelled, Return)." },
+        "customerPhone": { "type": "string", "description": "Customer mobile number." },
+        "customerAgeYears": { "type": "string", "description": "Customer or garment age/years specification." },
+        "selectedColor": { "type": "string", "description": "Selected colour name." },
+        "paymentStatus": { "type": "string", "description": "Payment/refund state." },
+        "orderConfirmed": { "type": "boolean", "description": "Pending order confirmation flag." },
+        "qualityVerified": { "type": "boolean", "description": "QC verification flag." },
+        "packed": { "type": "boolean", "description": "Packing completion flag." },
+        "invoiceGenerated": { "type": "boolean", "description": "Invoice generation flag." },
+        "barcodeScanned": { "type": "boolean", "description": "Packet barcode scan flag." },
+        "courierPartner": { "type": "string", "description": "Assigned courier company." },
+        "pickupStatus": { "type": "string", "description": "Courier pickup request status." },
+        "shippingCharges": { "type": "integer", "description": "Shipping fee in INR." },
+        "expectedDeliveryDate": { "type": "string", "description": "Expected delivery date." },
+        "currentTrackingLocation": { "type": "string", "description": "Current courier transit hub." },
+        "deliveryDelayed": { "type": "boolean", "description": "Delay alert flag." },
+        "rtoFlagged": { "type": "boolean", "description": "Whether shipped/delivered order went through RTO process." },
+        "rtoReason": { "type": "string", "description": "Return-to-origin reason." },
+        "cancelReason": { "type": "string", "description": "Cancellation reason." },
+        "cancelledBy": { "type": "string", "description": "Actor who cancelled (Customer, Seller, Admin)." },
+        "cancellationDate": { "type": "string", "description": "Date of cancellation." },
+        "refundStatus": { "type": "string", "description": "Refund workflow status." },
+        "refundAmount": { "type": "integer", "description": "Refund amount in INR." },
+        "stockRestored": { "type": "boolean", "description": "Inventory restoration flag." },
+        "holdReason": { "type": "string", "description": "On-hold reason." },
+        "holdDate": { "type": "string", "description": "On-hold timestamp string." },
+        "holdNotes": { "type": "string", "description": "Internal seller notes for held order." },
+        "holdExpiryAlert": { "type": "string", "description": "Hold expiry SLA string." },
+        "adminApprovedHold": { "type": "boolean", "description": "Admin approval flag for hold." },
+        "sellerHoldPermission": { "type": "boolean", "description": "Seller hold permission flag." },
+        "orderHistoryLog": { "type": "array", "description": "Bounded audit log strings (max 100)." },
+        "city": { "type": "string", "description": "Delivery city." },
+        "state": { "type": "string", "description": "Delivery state." },
+        "pinCode": { "type": "string", "description": "Delivery postal pincode." },
+        "customProductImageUri": { "type": "string", "description": "Uploaded product photo URI or empty string." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp set via FieldValue.serverTimestamp() on creation (immutable)." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp set via FieldValue.serverTimestamp() on every write." }
+      },
+      "required": [
+        "userId",
+        "orderId",
+        "productId",
+        "productName",
+        "status",
+        "customerName",
+        "quantity",
+        "totalAmount",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/OrderRecord" },
+      "description": "User-isolated order documents backing Pending, On Hold, Ready to Ship, Shipped, Delivered, Cancelled, and Return tabs."
+    }
+  }
+}
